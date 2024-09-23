@@ -1,6 +1,8 @@
 package html
 
 import (
+	"strings"
+
 	g "github.com/maragudk/gomponents"
 )
 
@@ -106,7 +108,14 @@ func CiteAttr(v string) g.Node {
 }
 
 func Class(v string) g.Node {
-	return g.Attr("class", v)
+	return g.AttrConcat("class", v, concatClasses)
+}
+
+func concatClasses(a, b string) string {
+	af := strings.Fields(a)
+	bf := strings.Fields(b)
+	af = append(af, bf...)
+	return strings.Join(af, " ")
 }
 
 func Cols(v string) g.Node {

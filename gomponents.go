@@ -79,6 +79,8 @@ func El(name string, children ...Node) Node {
 
 func render(w2 io.Writer, name *string, children ...Node) error {
 	w := &statefulWriter{w: w2}
+	children = flattenGroups(children)
+	children = concatAttrs(children)
 
 	if name != nil {
 		w.Write([]byte("<" + *name))
@@ -105,6 +107,19 @@ func render(w2 io.Writer, name *string, children ...Node) error {
 	return w.err
 }
 
+// flattenGroups recursively flattens groups in children.
+func flattenGroups(children []Node) []Node {
+	var flat []Node
+	for _, c := range children {
+		if g, ok := c.(group); ok {
+			flat = append(flat, flattenGroups(g.children)...)
+		} else {
+			flat = append(flat, c)
+		}
+	}
+	return flat
+}
+
 // renderChild c to the given writer w if the node type is t.
 func renderChild(w *statefulWriter, c Node, t NodeType) {
 	if w.err != nil || c == nil {
@@ -114,8 +129,10 @@ func renderChild(w *statefulWriter, c Node, t NodeType) {
 	// Rendering groups like this is still important even though a group can render itself,
 	// since otherwise attributes will sometimes be ignored.
 	if g, ok := c.(group); ok {
-		for _, groupC := range g.children {
-			renderChild(w, groupC, t)
+		children := flattenGroups(g.children)
+		children = concatAttrs(children)
+		for _, gc := range children {
+			renderChild(w, gc, t)
 		}
 		return
 	}
@@ -130,6 +147,35 @@ func renderChild(w *statefulWriter, c Node, t NodeType) {
 			w.err = c.Render(w.w)
 		}
 	}
+}
+
+// concatAttrs concatenates any attributes that can be concatenated.
+func concatAttrs(nodes []Node) []Node {
+	byName := make(map[string]int)
+	result := nodes[:0]
+	for i, n := range nodes {
+		a, ok := n.(*attr)
+		if !ok {
+			result = append(result, n)
+			continue
+		}
+		if a.concat == nil {
+			result = append(result, n)
+			continue
+		}
+		if j, ok := byName[a.name]; ok {
+			c := a.concat(*nodes[j].(*attr).value, *a.value)
+			result[j] = &attr{
+				name:   a.name,
+				value:  &c,
+				concat: a.concat,
+			}
+			continue
+		}
+		byName[a.name] = i
+		result = append(result, n)
+	}
+	return result
 }
 
 // statefulWriter only writes if no errors have occurred earlier in its lifetime.
@@ -187,9 +233,19 @@ func Attr(name string, value ...string) Node {
 	}
 }
 
+// AttrConcat is a variant of [Attr] that allows for concatenating two values of the same type into
+// one value. This is useful for attributes like "class" where, for multiple instances, you want to
+// concatenate two lists of classes into one.
+func AttrConcat(name, value string, concat func(string, string) string) Node {
+	return &attr{name: name, value: &value, concat: concat}
+}
+
 type attr struct {
 	name  string
 	value *string
+
+	// concat is a function that combines two attribute values into one.
+	concat func(string, string) string
 }
 
 // Render satisfies [Node].
