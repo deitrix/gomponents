@@ -250,8 +250,27 @@ func Step(v string) g.Node {
 	return g.Attr("step", v)
 }
 
-func Style(v string) g.Node {
-	return g.Attr("style", v)
+func Style(v ...string) g.Node {
+	return g.AttrConcat("style", strings.Join(v, "; "), concatStyles)
+}
+
+func concatStyles(a, b string) string {
+	as := strings.Split(a, ";")
+	bs := strings.Split(b, ";")
+	rs := make([]string, 0, len(as)+len(bs))
+	for _, s := range as {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			rs = append(rs, s)
+		}
+	}
+	for _, s := range bs {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			rs = append(rs, s)
+		}
+	}
+	return strings.Join(rs, "; ")
 }
 
 // Deprecated: Use [Style] instead.
