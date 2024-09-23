@@ -107,8 +107,8 @@ func CiteAttr(v string) g.Node {
 	return g.Attr("cite", v)
 }
 
-func Class(v string) g.Node {
-	return g.AttrConcat("class", v, concatClasses)
+func Class(v ...string) g.Node {
+	return g.AttrConcat("class", strings.Join(v, " "), concatClasses)
 }
 
 func concatClasses(a, b string) string {

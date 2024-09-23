@@ -16,7 +16,7 @@ func main() {
 }
 
 func Btn(children ...Node) Node {
-	return A(Class("no-underline text-white text-sm py-0.5 px-2"), Group(children))
+	return A(Class("no-underline", "text-white text-sm", "py-0.5 px-2"), Group(children))
 }
 
 func BtnPrimary(children ...Node) Node {
