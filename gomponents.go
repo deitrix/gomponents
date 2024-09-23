@@ -153,7 +153,7 @@ func renderChild(w *statefulWriter, c Node, t NodeType) {
 func concatAttrs(nodes []Node) []Node {
 	byName := make(map[string]int)
 	result := nodes[:0]
-	for i, n := range nodes {
+	for _, n := range nodes {
 		a, ok := n.(*attr)
 		if !ok {
 			result = append(result, n)
@@ -172,7 +172,7 @@ func concatAttrs(nodes []Node) []Node {
 			}
 			continue
 		}
-		byName[a.name] = i
+		byName[a.name] = len(result)
 		result = append(result, n)
 	}
 	return result
